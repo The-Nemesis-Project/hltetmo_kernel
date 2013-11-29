@@ -28,15 +28,15 @@
 
 extern struct snd_soc_codec *fauxsound_codec_ptr;
 
-int snd_ctrl_locked = 1;
+static int snd_ctrl_locked = 0;
 
 unsigned int taiko_read(struct snd_soc_codec *codec, unsigned int reg);
 int taiko_write(struct snd_soc_codec *codec, unsigned int reg,
 		unsigned int value);
 
 
-static unsigned int cached_regs[] = {6, 6, 0, 0, -2, -2, 0, 0, 0, 0,
-			    -2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+static unsigned int cached_regs[] = {6, 6, 0, 0, 0, 0, 0, 0, 0, 0,
+			    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			    0 };
 
 static unsigned int *cache_select(unsigned int reg)
