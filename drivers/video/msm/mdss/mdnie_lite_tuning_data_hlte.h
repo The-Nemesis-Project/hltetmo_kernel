@@ -50,28 +50,28 @@ char LITE_CONTROL_2[] = {
 	0x00,
 	0x00,
 	0x00, //18 = cyan_red
-	0xff, //19 = red_red
-	0xff, //20 = cyan_green
+	0x00, //19 = red_red
+	0x00, //20 = cyan_green
 	0x00, //21 = red_green
-	0xff, //22 = cyan_blue
+	0x00, //22 = cyan_blue
 	0x00, //23 = red_blue
-	0xff, //24 = magenta_red
+	0x00, //24 = magenta_red
 	0x00, //25 = green_red
 	0x00, //26 = magenta_green
-	0xff, //27 = green_green
-	0xff, //28 = magenta_blue
+	0x00, //27 = green_green
+	0x00, //28 = magenta_blue
 	0x00, //29 = green_blue
-	0xff, //30 = yellow_red
+	0x00, //30 = yellow_red
 	0x00, //31 = blue_red
-	0xff, //32 = yellow_green
+	0x00, //32 = yellow_green
 	0x00, //33 = blue_green
 	0x00, //34 = yellow_blue
-	0xff, //35 = blue_blue
-	0xff, //36 = white_red
+	0x00, //35 = blue_blue
+	0x00, //36 = white_red
 	0x00, //37 = black_red
-	0xff, //38 = white_green
+	0x00, //38 = white_green
 	0x00, //39 = black_green
-	0xff, //40 = white_blue
+	0x00, //40 = white_blue
 	0x00, //41 = black_blue
 	0x00, //curve 1 b
 	0x20, //curve 1 a
@@ -121,24 +121,24 @@ char LITE_CONTROL_2[] = {
 	0x20, //curve23 a
 	0x00, //curve24 b
 	0xFF, //curve24 a
-	0x04, //cc r1 0.08x
-	0x39,
+	0x04, //cc r1 0.2
+	0x90,
 	0x1f, //cc r2
-	0xd0,
+	0x88,
 	0x1f, //cc r3
-	0xf7,
+	0xe8,
 	0x1f, //cc g1
-	0xe8,
+	0xc3,
 	0x04, //cc g2
-	0x21,
+	0x55,
 	0x1f, //cc g3
-	0xf7,
-	0x1f, //cc b1
 	0xe8,
+	0x1f, //cc b1
+	0xc3,
 	0x1f, //cc b2
-	0xd0,
+	0x88,
 	0x04, //cc b3
-	0x48,
+	0xb5,
 };
 #endif
 
@@ -499,6 +499,7 @@ static char DYNAMIC_UI_2[] = {
 	0x36,
 };
 
+#if !defined(CONFIG_MDNIE_LITE_CONTROL)
 static char MOVIE_UI_1[] = {
 	0xEB,
 	0x01, //mdnie_en
@@ -617,6 +618,7 @@ static char MOVIE_UI_2[] = {
 	0x04, //cc b3
 	0xb5,
 };
+#endif
 
 char AUTO_UI_1[] = {
 	0xEB,
@@ -738,7 +740,6 @@ char AUTO_UI_2[] = {
 };
 
 ////////////////// GALLERY /////////////////////
-
 static char STANDARD_GALLERY_1[] = {
 	0xEB,
 	0x01, //mdnie_en
@@ -1096,6 +1097,7 @@ static char DYNAMIC_GALLERY_2[] = {
 	0x36,
 };
 
+#if !defined(CONFIG_MDNIE_LITE_CONTROL)
 static char MOVIE_GALLERY_1[] = {
 	0xEB,
 	0x01, //mdnie_en
@@ -1214,6 +1216,7 @@ static char MOVIE_GALLERY_2[] = {
 	0x04, //cc b3
 	0xb5,
 };
+#endif
 
 char AUTO_GALLERY_1[] = {
 	0xEB,
@@ -1693,6 +1696,7 @@ static char DYNAMIC_VIDEO_2[] = {
 	0x36,
 };
 
+#if !defined(CONFIG_MDNIE_LITE_CONTROL)
 static char MOVIE_VIDEO_1[] = {
 	0xEB,
 	0x01, //mdnie_en
@@ -1811,6 +1815,7 @@ static char MOVIE_VIDEO_2[] = {
 	0x04, //cc b3
 	0xb5,
 };
+#endif
 
 char AUTO_VIDEO_1[] = {
 	0xEB,
@@ -2290,6 +2295,7 @@ static char DYNAMIC_VT_2[] = {
 	0x36,
 };
 
+#if !defined(CONFIG_MDNIE_LITE_CONTROL)
 static char MOVIE_VT_1[] = {
 	0xEB,
 	0x01, //mdnie_en
@@ -2408,6 +2414,7 @@ static char MOVIE_VT_2[] = {
 	0x04, //cc b3
 	0xb5,
 };
+#endif
 
 char AUTO_VT_1[] = {
 	0xEB,
