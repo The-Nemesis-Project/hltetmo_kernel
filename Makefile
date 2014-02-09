@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 0
-EXTRAVERSION =
+EXTRAVERSION =-BioShock-N900T
 NAME = Saber-toothed Squirrel
 
 # *DOCUMENTATION*
@@ -194,8 +194,8 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 export KBUILD_BUILDHOST := $(SUBARCH)
 #ARCH		?= $(SUBARCH)
 #CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
-ARCH  ?= arm
-CROSS_COMPILE ?= /home/opensource.m/toolchains/arm-eabi-4.7/bin/arm-eabi-
+ARCH		?= arm
+CROSS_COMPILE	= /home/jamison/android/toolchain/eabi-linaro-4.7/bin/arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
