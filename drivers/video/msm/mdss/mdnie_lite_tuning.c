@@ -1590,7 +1590,7 @@ static ssize_t mdnieset_init_file_cmd_store(struct device *dev,
 	default:
 		printk(KERN_ERR
 		       "mdnieset_init_file_cmd_store value is wrong : value(%d)\n",
-		       value);050b3cbbc13c5ae179177d30bce7540b625947b9
+		       value);
 		break;
 	}
 	mDNIe_Set_Mode(mdnie_tun_state.scenario);
