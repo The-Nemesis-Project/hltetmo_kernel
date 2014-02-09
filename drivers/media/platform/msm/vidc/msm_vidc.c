@@ -497,9 +497,9 @@ void *msm_vidc_open(int core_id, int session_type)
 
 	setup_event_queue(inst, &core->vdev[core_id].vdev);
 
-	mutex_lock(&core->sync_lock);
+	mutex_lock(&core->lock);
 	list_add_tail(&inst->list, &core->instances);
-	mutex_unlock(&core->sync_lock);
+	mutex_unlock(&core->lock);
 	return inst;
 fail_init:
 	msm_smem_delete_client(inst->mem_client);

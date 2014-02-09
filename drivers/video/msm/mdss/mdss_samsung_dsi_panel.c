@@ -63,10 +63,6 @@
 
 #define DT_CMD_HDR 6
 
-unsigned int Lpanel_colors = 2;
-extern void panel_load_colors(unsigned int val);
-extern bool cpufreq_screen_on;
-
 static struct dsi_buf dsi_panel_tx_buf;
 static struct dsi_buf dsi_panel_rx_buf;
 
@@ -1437,35 +1433,6 @@ static DEVICE_ATTR(partial_disp, S_IRUGO | S_IWUSR | S_IWGRP,
 
 #endif
 
-static ssize_t panel_colors_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", Lpanel_colors);
-}
-
-static ssize_t panel_colors_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	int ret;
-	unsigned int value;
-
-	ret = sscanf(buf, "%d\n", &value);
-	if (ret != 1)
-		return -EINVAL;
-
-	if (value < 0)
-		value = 0;
-	else if (value > 4)
-		value = 4;
-
-	Lpanel_colors = value;
-
-	panel_load_colors(Lpanel_colors);
-
-	return size;
-}
-
-static DEVICE_ATTR(panel_colors, S_IRUGO | S_IWUSR | S_IWGRP,
-			panel_colors_show, panel_colors_store);
-
 #if !defined(CONFIG_FB_MSM_EDP_SAMSUNG)
 static int __init current_boot_mode(char *mode)
 {
@@ -2163,7 +2130,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
-	cpufreq_screen_on = true;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 			panel_data);
 
@@ -2285,7 +2251,6 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	mipi_samsung_disp_send_cmd(PANEL_DISP_OFF, true);
 
 	pr_info("mdss_dsi_panel_off --\n");
-	cpufreq_screen_on = false;
 
 	return 0;
 }
@@ -3313,7 +3278,6 @@ static struct attribute *panel_sysfs_attributes[] = {
 #endif
 #if defined(PARTIAL_UPDATE)
 	&dev_attr_partial_disp.attr,
-	&dev_attr_panel_colors.attr,
 #endif
 	NULL
 };

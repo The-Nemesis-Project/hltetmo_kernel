@@ -17,6 +17,7 @@
  *
  */
 
+#include <linux/earlysuspend.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/cpufreq.h>
@@ -196,6 +197,15 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 	struct cpufreq_frequency_table *table;
 
 	struct cpufreq_work_struct *cpu_work = NULL;
+	cpumask_var_t mask;
+
+	if (!cpu_active(policy->cpu)) {
+		pr_info("cpufreq: cpu %d is not active.\n", policy->cpu);
+		return -ENODEV;
+	}
+
+	if (!alloc_cpumask_var(&mask, GFP_KERNEL))
+		return -ENOMEM;
 
 	mutex_lock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
 
@@ -223,14 +233,22 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 	cpu_work->frequency = table[index].frequency;
 	cpu_work->status = -ENODEV;
 
-	cancel_work_sync(&cpu_work->work);
-	INIT_COMPLETION(cpu_work->complete);
-	queue_work_on(policy->cpu, msm_cpufreq_wq, &cpu_work->work);
-	wait_for_completion(&cpu_work->complete);
+	cpumask_clear(mask);
+	cpumask_set_cpu(policy->cpu, mask);
+	if (cpumask_equal(mask, &current->cpus_allowed)) {
+		ret = set_cpu_freq(cpu_work->policy, cpu_work->frequency);
+		goto done;
+	} else {
+		cancel_work_sync(&cpu_work->work);
+		INIT_COMPLETION(cpu_work->complete);
+		queue_work_on(policy->cpu, msm_cpufreq_wq, &cpu_work->work);
+		wait_for_completion(&cpu_work->complete);
+	}
 
 	ret = cpu_work->status;
 
 done:
+	free_cpumask_var(mask);
 	mutex_unlock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
 	return ret;
 }
@@ -300,9 +318,9 @@ int msm_cpufreq_set_freq_limits(uint32_t cpu, uint32_t min, uint32_t max)
 	else
 		limit->allowed_max = limit->max;
 
-	//pr_debug("%s: Limiting cpu %d min = %d, max = %d\n",
-	//		__func__, cpu,
-	//		limit->allowed_min, limit->allowed_max);
+	pr_debug("%s: Limiting cpu %d min = %d, max = %d\n",
+			__func__, cpu,
+			limit->allowed_min, limit->allowed_max);
 
 	return 0;
 }
@@ -376,7 +394,6 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 
 static int __cpuinit msm_cpufreq_cpu_callback(struct notifier_block *nfb,
 		unsigned long action, void *hcpu)
-
 {
 	unsigned int cpu = (unsigned long)hcpu;
 

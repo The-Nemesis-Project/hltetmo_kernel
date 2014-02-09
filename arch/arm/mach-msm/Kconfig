@@ -280,11 +280,11 @@ config ARCH_MSM8974
 	select MEMORY_HOLE_CARVEOUT
 	select MSM_RPM_STATS_LOG
 	select QMI_ENCDEC
+	select DONT_MAP_HOLE_AFTER_MEMBANK0
 	select MSM_ULTRASOUND_B
 	select MSM_LPM_TEST
 	select MSM_RPM_LOG
 	select ARCH_WANT_KMAP_ATOMIC_FLUSH
-	select ENABLE_VMALLOC_SAVINGS
 
 config ARCH_APQ8084
 	bool "APQ8084"
@@ -305,8 +305,8 @@ config ARCH_APQ8084
 	select ARCH_DMA_ADDR_T_64BIT if ARM_LPAE
 	select ARCH_WANT_KMAP_ATOMIC_FLUSH
 	select MEMORY_HOLE_CARVEOUT
+	select DONT_MAP_HOLE_AFTER_MEMBANK0
 	select QMI_ENCDEC
-	select ENABLE_VMALLOC_SAVINGS
 
 config ARCH_MPQ8092
 	bool "MPQ8092"
@@ -454,6 +454,7 @@ config ARCH_MSM8610
 	select MSM_L2_SPM
 	select MSM_PM8X60 if PM
 	select MEMORY_HOLE_CARVEOUT
+	select DONT_MAP_HOLE_AFTER_MEMBANK0
 	select MSM_BUS_SCALING
 	select CPU_FREQ_MSM
 	select CPU_FREQ
@@ -470,7 +471,6 @@ config ARCH_MSM8610
 	select MSM_CPR_REGULATOR
 	select MSM_RPM_LOG
 	select MSM_RPM_STATS_LOG
-	select ENABLE_VMALLOC_SAVINGS
 
 config ARCH_MSM8226
 	bool "MSM8226"
@@ -496,6 +496,7 @@ config ARCH_MSM8226
 	select MSM_L2_SPM
 	select MSM_PM8X60 if PM
 	select MEMORY_HOLE_CARVEOUT
+	select DONT_MAP_HOLE_AFTER_MEMBANK0
 	select MSM_BUS_SCALING
 	select CPU_FREQ_MSM
 	select CPU_FREQ
@@ -512,7 +513,6 @@ config ARCH_MSM8226
 	select MSM_RPM_LOG
 	select MSM_RPM_STATS_LOG
 	select ARCH_WANT_KMAP_ATOMIC_FLUSH
-	select ENABLE_VMALLOC_SAVINGS
 
 config ARCH_MSMSAMARIUM
 	bool "MSMSAMARIUM"
@@ -2258,41 +2258,6 @@ config MSM_CPU_FREQ_MIN
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
 	default 245760
 
-config CPU_VOLTAGE_TABLE
-	bool "Enable CPU Voltage Table via sysfs for adjustments"
-	default n
-	help
-	  Krait User Voltage Control
-
-config INTELLI_PLUG
-	bool "Enable intelli-plug cpu hotplug driver"
-	default n
-	help
-	  Generic Intelli-plug cpu hotplug driver for ARM SOCs
-
-config MSM_CPUFREQ_LIMITER
-	tristate "MSM CPU frequency limiter"
-	default n
-	help
-	  This driver limits MSM CPU frequency through sysfs file system.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_stats.
-
-	  If in doubt, say N.
-
-config CPU_OVERCLOCK
-	bool "Allow 2.649 GHz As Max OC Option"
-	default n
-	help
-	  Unlocks The CPU Overclocking Frequency Speed Up To 2.649 GHz
-
-config CPU_UNDERCLOCK
-	bool "Allow 96MHz As Min UC Option"
-	default n
-	help
-	  Unlocks The CPU Underclocking Frequency Speed Down To 96MHz
-
 endif # CPU_FREQ_MSM
 
 config MSM_AVS_HW
@@ -3311,7 +3276,7 @@ config SEC_PERIPHERAL_SECURE_CHK
           To check the authentication of peripheral image.	  
 
 config SEC_LOG_LAST_KMSG
-	default y
+	default n
 	bool "Enable /proc/last_kmsg support: if EMBEDDED"
 	help
 	  This option enables /proc/last_kmsg support.
@@ -3578,13 +3543,5 @@ config PCM_ROUTE_VOICE_STUB
 	default n
 	bool "External AUXPCM device route to SLIMBUS or WCN(BT) using the VOICE_STUB Front End"
 	depends on ARCH_MSM8974
-
-config FORCE_FAST_CHARGE
-	bool "Force fast charging (AC/USB) by Yank555.lu"
-	default y
-	help
-	  A simple sysfs interface to force adapters that
-	  are detected as USB to charge as AC (1A/h) or to set
-	  custom charging currents for AC and USB.
 	
 endif

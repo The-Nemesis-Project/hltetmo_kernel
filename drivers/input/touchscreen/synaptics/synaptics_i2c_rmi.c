@@ -33,10 +33,6 @@
 #include <linux/regulator/consumer.h>
 #include <linux/qpnp/pin.h>
 
-#ifdef CONFIG_TOUCH_WAKE
-#include <linux/touch_wake.h>
-#endif
-
 #define DRIVER_NAME "synaptics_rmi4_i2c"
 #undef USE_SENSOR_SLEEP
 
@@ -194,7 +190,6 @@ static int synaptics_rmi4_start_device(struct synaptics_rmi4_data *rmi4_data);
 static int synaptics_rmi4_init_exp_fn(struct synaptics_rmi4_data *rmi4_data);
 static void synaptics_rmi4_remove_exp_fn(struct synaptics_rmi4_data *rmi4_data);
 
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static ssize_t synaptics_rmi4_full_pm_cycle_show(struct device *dev,
 		struct device_attribute *attr, char *buf);
@@ -207,10 +202,6 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h);
 static void synaptics_rmi4_late_resume(struct early_suspend *h);
 
 #else
-#ifdef CONFIG_FB
-static int fb_notifier_callback(struct notifier_block *self,
-				unsigned long event, void *data);
-#endif
 
 static int synaptics_rmi4_suspend(struct device *dev);
 
@@ -702,17 +693,12 @@ static struct device_attribute attrs[] = {
 			synaptics_rmi4_suspend_store),
 };
 
-extern unsigned int system_rev;
+extern int system_rev;
 
 static struct list_head exp_fn_list;
 
 #ifdef PROXIMITY
 static struct synaptics_rmi4_f51_handle *f51;
-#endif
-
-#ifdef CONFIG_TOUCH_WAKE
-static struct synaptics_rmi4_data *touchwake_data;
-int previous_touch_state = false;
 #endif
 
 #ifdef READ_LCD_ID
@@ -1965,22 +1951,6 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 			dev_info(&rmi4_data->i2c_client->dev, "%s: status: %x, retval: %d\n",
 					__func__, device_status, retval);
 	}
-
-#ifdef CONFIG_TOUCH_WAKE
-	// Read touchscreen digitizer
-	if (touchwake_active() && touch_count > 0) {
-		if (previous_touch_state == false) {
-			#ifdef TOUCHWAKE_DEBUG_PRINT
-			pr_info("[TOUCHWAKE] Synaptics pressed\n");
-			#endif
-			touch_press(); // Yank555.lu - Screen touched
-			previous_touch_state = true; // once is enough
-		}
-	} else {
-		previous_touch_state = false; // touch released, restart listening
-	}
-#endif
-
 	return touch_count;
 }
 
@@ -2332,6 +2302,7 @@ static void synaptics_rmi4_report_touch(struct synaptics_rmi4_data *rmi4_data,
 					__func__, fhandler->fn_number);
 			break;
 	}
+
 	return;
 }
 
@@ -4611,41 +4582,6 @@ void synaptics_power_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable)
 	return;
 }
 
-#if defined(CONFIG_FB)
-static int fb_notifier_callback(struct notifier_block *self,
-				unsigned long event, void *data)
-{
-	struct fb_event *evdata = data;
-	int *blank;
-	struct synaptics_rmi4_data *rmi4_data =
-		container_of(self, struct synaptics_rmi4_data, fb_notif);
-
-	if (evdata && evdata->data && event == FB_EVENT_BLANK &&
-		rmi4_data && rmi4_data->i2c_client) {
-		blank = evdata->data;
-		if (*blank == FB_BLANK_UNBLANK)
-			synaptics_rmi4_resume(&(rmi4_data->input_dev->dev));
-		else if (*blank == FB_BLANK_POWERDOWN)
-			synaptics_rmi4_suspend(&(rmi4_data->input_dev->dev));
-	}
-
-	return 0;
-}
-
-static void configure_sleep(struct synaptics_rmi4_data *rmi4_data)
-{
-	int retval = 0;
-
-	rmi4_data->fb_notif.notifier_call = fb_notifier_callback;
-
-	retval = fb_register_client(&rmi4_data->fb_notif);
-	if (retval)
-		dev_err(&rmi4_data->i2c_client->dev,
-			"Unable to register fb_notifier: %d\n", retval);
-	return;
-}
-#endif
-
 /**
  * synaptics_rmi4_probe()
  *
@@ -4753,10 +4689,6 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&rmi4_data->rezero_work, synaptics_rmi4_rezero_work);
 #endif
 	i2c_set_clientdata(client, rmi4_data);
-
-#ifdef CONFIG_FB
-	configure_sleep(rmi4_data);
-#endif
 
 err_tsp_reboot:
 	synaptics_power_ctrl(rmi4_data,true);
@@ -4866,13 +4798,6 @@ err_tsp_reboot:
 	complete_all(&rmi4_data->init_done);
 
 #endif
-
-#ifdef CONFIG_TOUCH_WAKE
-	// Yank555.lu - Store the data for touchwake
-	touchwake_data = rmi4_data;
-	if (touchwake_data == NULL)
-		pr_err("[TOUCHWAKE] Failed to set Synaptics touchwake_data\n");
-#endif 
 	return retval;
 
 err_fw_update:
@@ -5263,30 +5188,20 @@ static int synaptics_rmi4_suspend(struct device *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
 
-#ifdef CONFIG_TOUCH_WAKE
-	// Don't change state if touchwake listening delay is active
-	if (!touchwake_active()) {
-		#ifdef TOUCHWAKE_DEBUG_PRINT
-		pr_info("[TOUCHWAKE] Synaptics suspend\n");
-		#endif
-#endif
-		dev_dbg(&rmi4_data->i2c_client->dev, "%s\n", __func__);
+	dev_dbg(&rmi4_data->i2c_client->dev, "%s\n", __func__);
 
-		if (rmi4_data->staying_awake) {
-			dev_info(&rmi4_data->i2c_client->dev, "%s : return due to staying_awake\n",
-					__func__);
-			return 0;
-		}
-
-		mutex_lock(&rmi4_data->input_dev->mutex);
-
-		if (rmi4_data->input_dev->users)
-			synaptics_rmi4_stop_device(rmi4_data);
-
-		mutex_unlock(&rmi4_data->input_dev->mutex);
-#ifdef CONFIG_TOUCH_WAKE
+	if (rmi4_data->staying_awake) {
+		dev_info(&rmi4_data->i2c_client->dev, "%s : return due to staying_awake\n",
+				__func__);
+		return 0;
 	}
-#endif
+
+	mutex_lock(&rmi4_data->input_dev->mutex);
+
+	if (rmi4_data->input_dev->users)
+		synaptics_rmi4_stop_device(rmi4_data);
+
+	mutex_unlock(&rmi4_data->input_dev->mutex);
 
 	return 0;
 }
@@ -5306,72 +5221,27 @@ static int synaptics_rmi4_resume(struct device *dev)
 	int retval;
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
 
-#ifdef CONFIG_TOUCH_WAKE
-	// Don't change state if touchwake listening delay is active
-	if (!touchwake_active()) {
-		#ifdef TOUCHWAKE_DEBUG_PRINT
-		pr_info("[TOUCHWAKE] Synaptics resume\n");
-		#endif
-#endif
-		dev_dbg(&rmi4_data->i2c_client->dev, "%s\n", __func__);
+	dev_dbg(&rmi4_data->i2c_client->dev, "%s\n", __func__);
 
-		mutex_lock(&rmi4_data->input_dev->mutex);
+	mutex_lock(&rmi4_data->input_dev->mutex);
 
-		if (rmi4_data->input_dev->users) {
-			retval = synaptics_rmi4_start_device(rmi4_data);
-			if (retval < 0)
-				dev_err(&rmi4_data->i2c_client->dev,
-						"%s: Failed to start device\n", __func__);
-		}
-
-		mutex_unlock(&rmi4_data->input_dev->mutex);
-#ifdef CONFIG_TOUCH_WAKE
+	if (rmi4_data->input_dev->users) {
+		retval = synaptics_rmi4_start_device(rmi4_data);
+		if (retval < 0)
+			dev_err(&rmi4_data->i2c_client->dev,
+					"%s: Failed to start device\n", __func__);
 	}
-#endif
+
+	mutex_unlock(&rmi4_data->input_dev->mutex);
 
 	return 0;
 }
-
-#ifdef CONFIG_TOUCH_WAKE
-// Yank555.lu - Add hooks to enable / disable the digitizer for touchwake
-void touchscreen_disable(void)
-{
-	#ifdef TOUCHWAKE_DEBUG_PRINT
-	pr_info("[TOUCHWAKE] Synaptics disable\n");
-	#endif
-
-	if (touchwake_data != NULL)
-		synaptics_rmi4_suspend(&touchwake_data->i2c_client->dev);
-
-	return;
-}
-EXPORT_SYMBOL(touchscreen_disable);
-
-void touchscreen_enable(void)
-{
-	#ifdef TOUCHWAKE_DEBUG_PRINT
-	pr_info("[TOUCHWAKE] Synaptics enable\n");
-	#endif
-
-	if (touchwake_data != NULL)
-		synaptics_rmi4_resume(&touchwake_data->i2c_client->dev);
-
-	return;
-}
-EXPORT_SYMBOL(touchscreen_enable);
 #endif
 
-#endif
-
-#if !defined(CONFIG_FB)
 static const struct dev_pm_ops synaptics_rmi4_dev_pm_ops = {
 	.suspend = synaptics_rmi4_suspend,
 	.resume  = synaptics_rmi4_resume,
 };
-#else
-static const struct dev_pm_ops synaptics_rmi4_dev_pm_ops = {
-};
-#endif
 #endif
 
 static const struct i2c_device_id synaptics_rmi4_id_table[] = {

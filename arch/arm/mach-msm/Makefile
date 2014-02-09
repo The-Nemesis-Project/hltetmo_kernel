@@ -8,7 +8,6 @@ endif
 obj-y += clock.o clock-voter.o clock-dummy.o clock-generic.o
 obj-y += modem_notifier.o
 obj-$(CONFIG_USE_OF) += board-dt.o
-obj-$(CONFIG_INTELLI_PLUG) += intelli_plug.o
 obj-$(CONFIG_DEBUG_FS) += nohlt.o clock-debug.o
 obj-$(CONFIG_KEXEC) += msm_kexec.o
 
@@ -478,6 +477,3 @@ endif
 
 obj-$(CONFIG_GSM_MODEM_SPRD6500) += board-sprd6500-spi.o board-sprd6500-modems.o
 obj-$(CONFIG_MACH_VIENNAEUR) +=	board-vienna-motor.o
-obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
-obj-$(CONFIG_MSM_CPUFREQ_LIMITER) += cpufreq_limit.o
-obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o

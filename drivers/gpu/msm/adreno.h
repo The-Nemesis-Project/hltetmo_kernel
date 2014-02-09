@@ -124,9 +124,6 @@ struct adreno_device {
 	unsigned int pix_shader_start;
 	unsigned int instruction_size;
 	unsigned int ib_check_level;
-	atomic_t hang_intr_set;
-	unsigned int hang_intr_en;
-	unsigned int intr_mask;
 	unsigned int fast_hang_detect;
 	unsigned int ft_policy;
 	unsigned int long_ib_detect;
@@ -160,15 +157,14 @@ enum adreno_device_flags {
 /**
  * struct adreno_perfcount_register: register state
  * @countable: countable the register holds
- * @kernelcount: number of user space users of the register
- * @usercount: number of kernel users of the register
+ * @refcount: number of users of the register
  * @offset: register hardware offset
  */
 struct adreno_perfcount_register {
 	unsigned int countable;
-	unsigned int kernelcount;
-	unsigned int usercount;
+	unsigned int refcount;
 	unsigned int offset;
+	unsigned int flags;
 };
 
 /**
@@ -211,9 +207,8 @@ struct adreno_gpudev {
 	void (*ctxt_draw_workaround)(struct adreno_device *,
 					struct adreno_context *);
 	irqreturn_t (*irq_handler)(struct adreno_device *);
-	void (*irq_control)(struct adreno_device *, unsigned int);
+	void (*irq_control)(struct adreno_device *, int);
 	unsigned int (*irq_pending)(struct adreno_device *);
-	void (*irq_init)(struct adreno_device *);
 	void * (*snapshot)(struct adreno_device *, void *, int *, int);
 	int (*rb_init)(struct adreno_device *, struct adreno_ringbuffer *);
 	void (*perfcounter_init)(struct adreno_device *);
@@ -274,19 +269,18 @@ struct adreno_ft_data {
 #define FT_DETECT_REGS_COUNT 12
 
 /* Fault Tolerance policy flags */
-#define  KGSL_FT_OFF                      BIT(0)
+#define  KGSL_FT_DISABLE                  BIT(0)
 #define  KGSL_FT_REPLAY                   BIT(1)
 #define  KGSL_FT_SKIPIB                   BIT(2)
 #define  KGSL_FT_SKIPFRAME                BIT(3)
-#define  KGSL_FT_DISABLE                  BIT(4)
-#define  KGSL_FT_TEMP_DISABLE             BIT(5)
+#define  KGSL_FT_TEMP_DISABLE             BIT(4)
 #define  KGSL_FT_DEFAULT_POLICY           (KGSL_FT_REPLAY + KGSL_FT_SKIPIB)
 
 /* Pagefault policy flags */
-#define KGSL_FT_PAGEFAULT_INT_ENABLE         BIT(0)
-#define KGSL_FT_PAGEFAULT_GPUHALT_ENABLE     BIT(1)
-#define KGSL_FT_PAGEFAULT_LOG_ONE_PER_PAGE   BIT(2)
-#define KGSL_FT_PAGEFAULT_LOG_ONE_PER_INT    BIT(3)
+#define KGSL_FT_PAGEFAULT_INT_ENABLE         0x00000001
+#define KGSL_FT_PAGEFAULT_GPUHALT_ENABLE     0x00000002
+#define KGSL_FT_PAGEFAULT_LOG_ONE_PER_PAGE   0x00000004
+#define KGSL_FT_PAGEFAULT_LOG_ONE_PER_INT    0x00000008
 #define KGSL_FT_PAGEFAULT_DEFAULT_POLICY     (KGSL_FT_PAGEFAULT_INT_ENABLE + \
 					KGSL_FT_PAGEFAULT_GPUHALT_ENABLE)
 
@@ -354,15 +348,12 @@ void adreno_dump_rb(struct kgsl_device *device, const void *buf,
 unsigned int adreno_ft_detect(struct kgsl_device *device,
 						unsigned int *prev_reg_val);
 
-int adreno_ft_init_sysfs(struct kgsl_device *device);
-void adreno_ft_uninit_sysfs(struct kgsl_device *device);
-
 int adreno_perfcounter_get(struct adreno_device *adreno_dev,
 	unsigned int groupid, unsigned int countable, unsigned int *offset,
 	unsigned int flags);
 
 int adreno_perfcounter_put(struct adreno_device *adreno_dev,
-	unsigned int groupid, unsigned int countable, unsigned int flags);
+	unsigned int groupid, unsigned int countable);
 
 int adreno_soft_reset(struct kgsl_device *device);
 
@@ -583,29 +574,4 @@ static inline int adreno_wait_reg_eq(unsigned int *cmds, unsigned int addr,
 	return cmds - start;
 }
 
-/*
- * adreno_hang_intr_supported() - Returns if hang interrupt is supported
- * @adreno_dev:		Pointer to the the adreno device
- */
-static inline bool adreno_hang_intr_supported(struct adreno_device *adreno_dev)
-{
-	bool ret = 0;
-	if (adreno_is_a330v2(adreno_dev))
-		ret = 1;
-	return ret;
-}
-
-/*
- * adreno_fatal_err_work() - Schedules a work to do GFT on fatal error
- * @adreno_dev:		Pointer to the the adreno device
- */
-static inline void adreno_fatal_err_work(struct adreno_device *adreno_dev)
-{
-	struct kgsl_device *device = &adreno_dev->dev;
-
-	/* If hang_intr_set is 0, set it to 1 and queue work */
-	if (!atomic_cmpxchg(&adreno_dev->hang_intr_set, 0, 1))
-		/* Schedule work to do fault tolerance */
-		queue_work(device->work_queue, &device->hang_intr_ws);
-}
 #endif /*__ADRENO_H */

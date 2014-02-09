@@ -67,8 +67,6 @@ adreno_ringbuffer_waitspace(struct adreno_ringbuffer *rb,
 	unsigned long wait_timeout = msecs_to_jiffies(ADRENO_IDLE_TIMEOUT);
 	unsigned long wait_time_part;
 	unsigned int prev_reg_val[FT_DETECT_REGS_COUNT];
-	unsigned int rptr;
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(rb->device);
 
 	memset(prev_reg_val, 0, sizeof(prev_reg_val));
 
@@ -88,8 +86,8 @@ adreno_ringbuffer_waitspace(struct adreno_ringbuffer *rb,
 		 * want the rptr and wptr to become equal when
 		 * the ringbuffer is not empty */
 		do {
-			rptr = adreno_get_rptr(rb);
-		} while (!rptr);
+			GSL_RB_GET_READPTR(rb, &rb->rptr);
+		} while (!rb->rptr);
 
 		rb->wptr++;
 
@@ -102,41 +100,36 @@ adreno_ringbuffer_waitspace(struct adreno_ringbuffer *rb,
 	wait_time_part = jiffies + msecs_to_jiffies(KGSL_TIMEOUT_PART);
 	/* wait for space in ringbuffer */
 	while (1) {
-		rptr = adreno_get_rptr(rb);
+		GSL_RB_GET_READPTR(rb, &rb->rptr);
 
-		freecmds = rptr - rb->wptr;
+		freecmds = rb->rptr - rb->wptr;
 
 		if (freecmds == 0 || freecmds > numcmds)
 			break;
 
 		/* Dont wait for timeout, detect hang faster.
 		 */
-
-		if (kgsl_atomic_read(&adreno_dev->hang_intr_set))
-			goto hang_detected;
-
 		if (time_after(jiffies, wait_time_part)) {
 			wait_time_part = jiffies +
 				msecs_to_jiffies(KGSL_TIMEOUT_PART);
-
-			if ((adreno_ft_detect(rb->device, prev_reg_val)))
-				goto hang_detected;
+			if ((adreno_ft_detect(rb->device,
+						prev_reg_val))){
+				KGSL_DRV_ERR(rb->device,
+				"Hang detected while waiting for freespace in"
+				"ringbuffer rptr: 0x%x, wptr: 0x%x\n",
+				rb->rptr, rb->wptr);
+				goto err;
+			}
 		}
 
 		if (time_after(jiffies, wait_time)) {
 			KGSL_DRV_ERR(rb->device,
 			"Timed out while waiting for freespace in ringbuffer "
-			"rptr: 0x%x, wptr: 0x%x\n", rptr, rb->wptr);
+			"rptr: 0x%x, wptr: 0x%x\n", rb->rptr, rb->wptr);
 			goto err;
 		}
 
 		continue;
-
-hang_detected:
-		KGSL_DRV_ERR(rb->device,
-			"Hang detected while waiting for freespace in"
-			"ringbuffer rptr: 0x%x, wptr: 0x%x\n",
-			rptr, rb->wptr);
 
 err:
 		if (!adreno_dump_and_exec_ft(rb->device)) {
@@ -161,12 +154,11 @@ unsigned int *adreno_ringbuffer_allocspace(struct adreno_ringbuffer *rb,
 {
 	unsigned int *ptr = NULL;
 	int ret = 0;
-	unsigned int rptr;
 	BUG_ON(numcmds >= rb->sizedwords);
 
-	rptr = adreno_get_rptr(rb);
+	GSL_RB_GET_READPTR(rb, &rb->rptr);
 	/* check for available space */
-	if (rb->wptr >= rptr) {
+	if (rb->wptr >= rb->rptr) {
 		/* wptr ahead or equal to rptr */
 		/* reserve dwords for nop packet */
 		if ((rb->wptr + numcmds) > (rb->sizedwords -
@@ -175,7 +167,7 @@ unsigned int *adreno_ringbuffer_allocspace(struct adreno_ringbuffer *rb,
 							numcmds, 1);
 	} else {
 		/* wptr behind rptr */
-		if ((rb->wptr + numcmds) >= rptr)
+		if ((rb->wptr + numcmds) >= rb->rptr)
 			ret = adreno_ringbuffer_waitspace(rb, context,
 							numcmds, 0);
 		/* check for remaining space */
@@ -461,6 +453,7 @@ int _ringbuffer_start_common(struct adreno_ringbuffer *rb)
 	else if (adreno_is_a330(adreno_dev) || adreno_is_a305b(adreno_dev))
 		adreno_regwrite(device, REG_CP_QUEUE_THRESHOLDS, 0x003E2008);
 
+	rb->rptr = 0;
 	rb->wptr = 0;
 
 	/* clear ME_HALT to start micro engine */
@@ -1409,6 +1402,7 @@ adreno_ringbuffer_restore(struct adreno_ringbuffer *rb, unsigned int *rb_buff,
 
 	if (num_rb_contents > (rb->buffer_desc.size - rb->wptr)) {
 		adreno_regwrite(rb->device, REG_CP_RB_RPTR, 0);
+		rb->rptr = 0;
 		BUG_ON(num_rb_contents > rb->buffer_desc.size);
 	}
 	ringcmds = (unsigned int *)rb->buffer_desc.hostptr + rb->wptr;

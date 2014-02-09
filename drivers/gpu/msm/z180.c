@@ -580,6 +580,7 @@ static int z180_start(struct kgsl_device *device)
 
 	z180_cmdstream_start(device);
 
+	mod_timer(&device->idle_timer, jiffies + FIRST_TIMEOUT);
 	kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
 	device->ftbl->irqctrl(device, 1);
 
@@ -918,11 +919,11 @@ static void z180_power_stats(struct kgsl_device *device,
 	}
 }
 
-static void z180_irqctrl(struct kgsl_device *device, unsigned int mask)
+static void z180_irqctrl(struct kgsl_device *device, int state)
 {
 	/* Control interrupts for Z180 and the Z180 MMU */
 
-	if (mask) {
+	if (state) {
 		z180_regwrite(device, (ADDR_VGC_IRQENABLE >> 2), 3);
 		z180_regwrite(device, MH_INTERRUPT_MASK,
 			kgsl_mmu_get_int_mask());

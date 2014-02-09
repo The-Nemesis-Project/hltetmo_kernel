@@ -42,18 +42,10 @@ config CPU_FREQ_STAT_DETAILS
 
 	  If in doubt, say N.
 
-config QUAD_CORES_SOC_STAT
-	bool "Overall statistic details for quadcore SOCs"
-	depends on CPU_FREQ_STAT
-	default y
-	help
-	  This will show overall CPU frequency statistics via sysfs.
-	  If this option is not set, it defaults to dual core stats
-
 choice
 	prompt "Default CPUFreq governor"
 	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
-	default CPU_FREQ_DEFAULT_GOV_ONDEMAND
+	default CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	help
 	  This option sets which CPUFreq governor shall be loaded at
 	  startup. If in doubt, select 'performance'.
@@ -74,13 +66,6 @@ config CPU_FREQ_DEFAULT_GOV_POWERSAVE
 	  Use the CPUFreq governor 'powersave' as default. This sets
 	  the frequency statically to the lowest frequency supported by
 	  the CPU.
-
-config CPU_FREQ_DEFAULT_GOV_WHEATLEY
-	bool "wheatley"
-	select CPU_FREQ_GOV_WHEATLEY
-	select CPU_FREQ_GOV_PERFORMANCE
-	help
-	  Use the CPUFreq governor 'wheatley' as default.
 
 config CPU_FREQ_DEFAULT_GOV_USERSPACE
 	bool "userspace"
@@ -115,12 +100,6 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
 
-config CPU_FREQ_DEFAULT_GOV_CONSERVATIVEX
-	bool "conservativex"
-	select CPU_FREQ_GOV_CONSERVATIVEX
-	help
-	  Default governor of BioShock
-
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	bool "interactive"
 	select CPU_FREQ_GOV_INTERACTIVE
@@ -129,31 +108,6 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	  you to get a full dynamic cpu frequency capable system by simply
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
-
-config CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND
-	bool "intellidemand"
-	select CPU_FREQ_GOV_INTELLIDEMAND
-	help
-	  Use the CPUFreq governor 'intellidemand' as default. This is
-	  based on Ondemand with browsing detection based on GPU loading
-
-config CPU_FREQ_DEFAULT_GOV_SMARTASSH3
-	bool "smartassH3"
-	select CPU_FREQ_GOV_SMARTASSH3
-	help
-	  Use the CPUFreq governor 'slp' as default.
-
-config CPU_FREQ_DEFAULT_GOV_LIONHEART
-	bool "lionheart"
-	select CPU_FREQ_GOV_LIONHEART
-	help
-	  Lionheart is a conservative-based governor which is based on
-	  samsung's update3 source. The tunables (such as the thresholds
-	  and sampling rate) were changed so the governor behaves more
-	  like the performance one, at the cost of battery as the scaling
-	  is very aggressive. When it comes to smoothness (not considering
-	  battery drain), a tuned conservative delivers more as compared to
-	  a tuned ondemand.
 
 endchoice
 
@@ -178,10 +132,6 @@ config CPU_FREQ_GOV_POWERSAVE
 	  module will be called cpufreq_powersave.
 
 	  If in doubt, say Y.
-
-config CPU_FREQ_GOV_WHEATLEY
-	tristate "'wheatley' cpufreq governor"
-	depends on CPU_FREQ
 
 config CPU_FREQ_GOV_USERSPACE
 	tristate "'userspace' governor for userspace frequency scaling"
@@ -215,13 +165,6 @@ config CPU_FREQ_GOV_ONDEMAND
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
-
-config CPUFREQ_ID_PERFLOCK
-	bool "Intellidemand Performance Lock"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	default	n
-	help
-		Minimum CPU performance lock for Intellidemand governor
 
 config CPU_FREQ_GOV_INTERACTIVE
 	tristate "'interactive' cpufreq policy governor"
@@ -262,64 +205,6 @@ config CPU_FREQ_GOV_CONSERVATIVE
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
-
-config CPU_FREQ_GOV_INTELLIDEMAND
-        tristate "'intellidemand' cpufreq policy governor"
-        select CPU_FREQ_TABLE
-        help
-          'intellidemand' - This driver adds a dynamic cpufreq policy governor.
-          The governor does a periodic polling and
-          changes frequency based on the CPU utilization.
-          The support for this governor depends on CPU capability to
-          do fast frequency switching (i.e, very low latency frequency
-          transitions). with browsing detection based on GPU loading
-
-          To compile this driver as a module, choose M here: the
-          module will be called cpufreq_ondemand.
-
-          For details, take a look at linux/Documentation/cpu-freq.
-
-          If in doubt, say N.
-
-config INTELLI_MAX_ACTIVE_FREQ
-	int "Max Active Freq for Intellidemand"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	default	2265600
-	help
-		Set default max active frequency for intellidemand
-
-config INTELLI_MAX_INACTIVE_FREQ
-	int "Max Inactive Freq for Intellidemand"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	default	1036800
-	help
-		Set default max inactive frequency for intellidemand
-
-config CPUFREQ_LIMIT_MAX_FREQ
-	bool "Limit Max Freq"
-	depends on CPU_FREQ_GOV_INTELLIDEMAND
-	help
-		Limit Max Freq while screen is on for Intellidemand governor
-
-config CPU_FREQ_GOV_CONSERVATIVEX
-	tristate "'conservativex' cpufreq governor"
-	depends on CPU_FREQ
-	help
-	  'conservativex' - less aggressive version of conservative
-
-config CPU_FREQ_GOV_LIONHEART
-	tristate "'lionheart' cpufreq governor"
-	depends on CPU_FREQ
-	help
-	  'LionHeart' - a more aggressive conservative governor approach.
-
-	  If in doubt, say N.
-
-config CPU_FREQ_GOV_SMARTASSH3
-	tristate "'smartassH3' cpufreq governor"
-	depends on CPU_FREQ
-	help
-    		'smartassH3' - a "smart" governor
 
 config SEC_DVFS
 	bool "DVFS job"
